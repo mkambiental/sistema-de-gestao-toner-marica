@@ -560,7 +560,7 @@ function normalizeRecord(raw){const r={...raw};if(!r.tipo_registro)r.tipo_regist
 function mergePersisted(current,incoming){const map=new Map();[...(current||[]),...(incoming||[])].map(normalizeRecord).forEach(r=>{const key=r.__backendId?'backend:'+r.__backendId:r.__stableKey;const old=map.get(key);map.set(key,old?{...old,...r}:r)});return[...map.values()]}
 function gS(){return D.filter(r=>r.tipo_registro==='solicitacao'&&!r.deletado)}
 function gP(){return D.filter(r=>r.tipo_registro==='impressora'&&!r.deletado)}
-function gE(){const stock=D.filter(r=>r.tipo_registro==='estoque'&&!r.deletado);const received=D.filter(r=>r.tipo_registro==='solicitacao'&&r.status==='RECEBIDO'&&!r.deletado&&!r.ref_solicitacao);return stock.concat(received.map(r=>({...r,tipo_registro:'estoque',toner_modelo:r.toner_modelo||r.nome_suprimento,estoque_entrada:1,estoque_saida:0,data_leitura:r.data_analise||r.data_solicitacao}))) }
+function gE(){return D.filter(r=>r.tipo_registro==='estoque'&&!r.deletado)}
 function gH(){return D.filter(r=>r.tipo_registro==='historico'&&!r.deletado)}
 function gJ(){return D.filter(r=>r.tipo_registro==='justificativa'&&!r.deletado)}
 function gI(name,cor){return[...gJ().filter(x=>x.impressora===name&&(!cor||!x.cor_negada||x.cor_negada===cor)),...gS().filter(x=>x.impressora===name&&x.status==='RECEBIDO'&&(!cor||!x.cor_negada||x.cor_negada===cor))].sort((a,b)=>(b.data_solicitacao||b.data_analise||b.data_leitura||'').localeCompare(a.data_solicitacao||a.data_analise||a.data_leitura||''))}
