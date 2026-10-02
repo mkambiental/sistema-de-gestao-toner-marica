@@ -35,6 +35,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
   const tables = ['impressoras','solicitacoes','justificativas','movimentacoes_estoque','historico'];
   let realtimeChannel = null;
   let notifyTimer = null;
+  let pollTimer = null;
+  let crossTab = null;
   async function loadStockBalances(){
     const {data,error}=await supabaseClient.from('estoque_atual').select('id,impressora_id,cor,quantidade,atualizado_em');
     if(error) throw error;
@@ -49,8 +51,20 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
     clearTimeout(notifyTimer);
     notifyTimer=setTimeout(()=>notify().catch(e=>console.error('SGT realtime',e)),180);
   }
+  function broadcastChange(){
+    try{
+      if(crossTab) crossTab.postMessage({type:'sgt-data-changed',at:Date.now()});
+      localStorage.setItem('sgt_sync_ping',String(Date.now()));
+    }catch(e){}
+  }
   function startRealtime(){
     if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+    try{
+      if(crossTab) crossTab.close();
+      crossTab=new BroadcastChannel('sgt-enterprise-sync');
+      crossTab.onmessage=ev=>{if(ev?.data?.type==='sgt-data-changed') scheduleNotify();};
+    }catch(e){crossTab=null;}
+    window.addEventListener('storage',ev=>{if(ev.key==='sgt_sync_ping') scheduleNotify();});
     realtimeChannel=supabaseClient.channel('sgt-realtime')
       .on('postgres_changes',{event:'*',schema:'public',table:'impressoras'},scheduleNotify)
       .on('postgres_changes',{event:'*',schema:'public',table:'solicitacoes'},scheduleNotify)
@@ -59,6 +73,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
       .on('postgres_changes',{event:'*',schema:'public',table:'historico'},scheduleNotify)
       .on('postgres_changes',{event:'*',schema:'public',table:'estoque_atual'},scheduleNotify)
       .subscribe();
+    clearInterval(pollTimer);
+    pollTimer=setInterval(()=>{ if(document.visibilityState!=='hidden') scheduleNotify(); },5000);
   }
   const printerCache = new Map();
 
@@ -168,6 +184,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
         if(error) throw error;
         const item=await fromRow(table,data);
         await notify();
+        broadcastChange();
         return {isOk:true,record:item};
       }catch(error){console.error('SGT Supabase create',error);return {isOk:false,error};}
     },
@@ -179,6 +196,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
         if(error) throw error;
         const item=await fromRow(table,data);
         await notify();
+        broadcastChange();
         return {isOk:true,record:item};
       }catch(error){console.error('SGT Supabase update',error);return {isOk:false,error};}
     }
