@@ -11,7 +11,7 @@
 .tc{width:100%;border-collapse:collapse}.tc th{background:#1e3a5f;color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}.tc td{padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:12px}.tc tr:hover td{background:#f0f7ff}
 .inv-tbody tr.inv-critical{background:#fee2e2}.inv-tbody tr.inv-critical td{background:#fee2e2}
 .inv-tbody tr.inv-warning{background:#fef3c7}.inv-tbody tr.inv-warning td{background:#fef3c7}
-.inv-tbody tr.inv-ok{background:#dcfce7}.inv-tbody tr.inv-ok td{background:#dcfce7}
+.inv-tbody tr.inv-ok{background:#fff}.inv-tbody tr.inv-ok td{background:#fff}
 .badge{padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;display:inline-block}
 .kpi-card{transition:transform .2s}.kpi-card:hover{transform:translateY(-2px)}
 .sem-c{background:#fecaca;color:#991b1b;border-left:4px solid #dc2626}
@@ -65,6 +65,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
       crossTab.onmessage=ev=>{if(ev?.data?.type==='sgt-data-changed') scheduleNotify();};
     }catch(e){crossTab=null;}
     window.addEventListener('storage',ev=>{if(ev.key==='sgt_sync_ping') scheduleNotify();});
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') scheduleNotify(); });
+    window.addEventListener('focus',()=>scheduleNotify());
     realtimeChannel=supabaseClient.channel('sgt-realtime')
       .on('postgres_changes',{event:'*',schema:'public',table:'impressoras'},scheduleNotify)
       .on('postgres_changes',{event:'*',schema:'public',table:'solicitacoes'},scheduleNotify)
@@ -74,7 +76,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLI
       .on('postgres_changes',{event:'*',schema:'public',table:'estoque_atual'},scheduleNotify)
       .subscribe();
     clearInterval(pollTimer);
-    pollTimer=setInterval(()=>{ if(document.visibilityState!=='hidden') scheduleNotify(); },5000);
+    pollTimer=setInterval(()=>{ scheduleNotify(); },2000);
   }
   const printerCache = new Map();
 
